@@ -257,8 +257,7 @@ public class Node {
             If successor of current node is bigger then we go to the maximum node in the finger table
             If successor of current node is less, it means that current node is the maximum node and successor of current node is the minimum node.
             Therefore, the ID of the candidate is either the new MAX or MIN node
-             */
-            if (isBigger(this.getSuccessor(), this)) {
+             */if (isBigger(this.getSuccessor(), this)) {
                 // if current node is not max or min then go to the max node in the finger table.
                 return nodes.get(arr[size - 1]);
             }
