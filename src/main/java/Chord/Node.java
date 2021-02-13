@@ -11,25 +11,20 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 public class Node {
-    //    private boolean isMax;
-//    private boolean isMin;
     private int keySize;
     private String id;
     private SortedMap<String, Node> nodes;
     private String ip;
     private String publicIp;
     private Node predecessor;
+    private Node successor;
     private Thread updateThread;
 
     public Node() {
-//        isMax = false;
-//        isMax = false;
+
         nodes = Collections.synchronizedSortedMap(new TreeMap<String, Node>(Comparator.naturalOrder()));
         try {
             id = hash(getKey().getEncoded());
@@ -71,28 +66,13 @@ public class Node {
     }
 
     public Node getSuccessor() {
-        return nodes.get(nodes.firstKey());
+        return successor;
     }
 
     public String getPublicIp() {
         return publicIp;
     }
 
-//    public boolean isMax() {
-//        return isMax;
-//    }
-//
-//    public void setMax(boolean max) {
-//        isMax = max;
-//    }
-//
-//    public boolean isMin() {
-//        return isMin;
-//    }
-//
-//    public void setMin(boolean min) {
-//        isMin = min;
-//    }
 
     public String getIp() {
         return ip;
@@ -126,7 +106,7 @@ public class Node {
         MessageDigest digest = MessageDigest.getInstance("SHA-1");
         this.keySize = digest.getDigestLength() * 8;
         byte[] hashBytes = digest.digest(msg);
-        return Util.byteToHex(hashBytes);
+        return Util.byteToHex(new BigInteger(hashBytes));
 
     }
 /*
@@ -137,6 +117,7 @@ public class Node {
     public void join(Node successor) {
         System.out.println("Node with ID " + id + "started JOIN to successor " + successor.getId());
         addNode(successor);
+        this.successor = successor;
         successor.joinNotify(this);
         checkConnections();
 
@@ -156,7 +137,6 @@ public class Node {
         System.out.println("Node " + id + " started stabilization");
         if (hasNeighbours()) {
             final String firstKey = nodes.firstKey();
-            final Node successor = nodes.get(firstKey);
             final Node x = successor.getPredecessor();
             if (x == null) {
                 if (isBigger(successor, this)) {
@@ -170,20 +150,13 @@ public class Node {
             if (!this.equals(x)) {
 
 
-
                 if (isBigger(x, this) && isBigger(successor, x)) { // Normal Case
-                    System.out.println("Node " + x.getId() + " is successor of node " + id);
-                    nodes.remove(firstKey);
-                    addNode(x);
-                    x.joinNotify(this);
+                    executeChanges(x);
                 } else if (isBigger(this, successor)) { //verifies than this node is current max
                     // MIN or MAX case
                     if (isBigger(successor, x) /*then x is the new min */ ||
                             isBigger(x, this) /*then this node is max */) {
-                        System.out.println("Node " + x.getId() + " is successor of node " + id);
-                        nodes.remove(firstKey);
-                        addNode(x);
-                        x.joinNotify(this);
+                        executeChanges(x);
                     }
                 }
             }
@@ -191,6 +164,14 @@ public class Node {
 
         return true;
 
+    }
+
+    private void executeChanges(Node x) {
+        System.out.println("Node " + x.getId() + " is successor of node " + id);
+        nodes.remove(successor.getId());
+        addNode(x);
+        this.successor = x;
+        x.joinNotify(this);
     }
 
     public void joinNotify(Node candidateNode) {
@@ -205,33 +186,42 @@ public class Node {
 
         if (!hasNeighbours()) {
             addNode(candidateNode);
+            successor = candidateNode;
             candidateNode.joinNotify(this);
         }
     }
 
     public void checkConnections() {
         System.out.println("Node " + id + " started checking connections");
-//        if (hasNeighbours()) {
         BigInteger id = Util.hexToInt(this.id);
         String hex;
+        HashMap<String, Node> temp = new HashMap<>();
         for (int i = 0; i < keySize; i++) {
             BigInteger base = BigInteger.valueOf(2);
             BigInteger offset = base.pow(i);
             BigInteger candidateId = id.add(offset);
             BigInteger maxId = base.pow(keySize);
             BigInteger result = candidateId.mod(maxId);
-            hex = Util.byteToHex(result.toByteArray());
-            //System.out.println("Node " + id + " looking for node " + hex);
+            hex = Util.byteToHex(result);
+//            System.out.println("Node " + id + " looking for node " + hex + " with initial int " + result);
             Node candidate = lookUp(hex);
             if (candidate == null) {
                 System.err.println("Lookup error");
                 break;
             }
+
             if (!candidate.equals(this)) {
-                addNode(candidate);
+                temp.put(candidate.getId(), candidate);
+            }
+            if (i == 0 && !successor.getId().equals(candidate.getId())) {
+                successor = candidate;
+                successor.joinNotify(this);
             }
         }
-//        }
+
+        nodes.clear();
+        nodes.putAll(temp);
+
 
     }
 
@@ -239,29 +229,32 @@ public class Node {
         //TODO
     }
 
-    private boolean isOtherBigger(String id) {
-        return isBigger(id, nodes.lastKey());
-    }
-
-    private boolean isOtherSmaller(String id) {
-        return !isBigger(id, nodes.firstKey());
-    }
 
     private Node findHighestPredecessor(String id) {
         final int size = nodes.keySet().size();
         final String[] arr = new String[size];
         nodes.keySet().toArray(arr);
         int resId = binarySearch(arr, 0, size - 1, id);
+//        System.out.println("Highest is " + resId + " was choosen from");
+//        for(String s: arr){
+//            System.out.println(s);
+//        }
         if (resId < 0) { // < 0 if ID either bigger or smaller than every node in the finger table
             /*
             If successor of current node is bigger then we go to the maximum node in the finger table
             If successor of current node is less, it means that current node is the maximum node and successor of current node is the minimum node.
-            Therefore, the ID of the candidate is either the new MAX or MIN node
-             */if (isBigger(this.getSuccessor(), this)) {
+             */
+            if (isBigger(this.getSuccessor(), this)) {
                 // if current node is not max or min then go to the max node in the finger table.
                 return nodes.get(arr[size - 1]);
             }
-            // if the current node is the max node then return current node.
+
+            // if the current node is the max node and ID is not new MAX or MIN then go to he highest node in the finger table
+            if (isBigger(this.getId(), id) && isBigger(id, this.getSuccessor().getId())) {
+                return nodes.get(arr[size - 1]);
+            }
+
+            // if the current node is the max node and ID is the new MIN or MAX node; then return current node.
             return this;
         }
         return nodes.get(arr[resId]);
@@ -289,9 +282,11 @@ public class Node {
     }
 
     private int binarySearch(String[] arr, int l, int r, String x) {
+//        System.out.println("Highest was choosen from");
+
         if (r >= l) {
             int mid = l + (r - l) / 2;
-            if (mid != r) {
+            if (mid != arr.length - 1) {
                 if (isBigger(x, arr[mid]) && isBigger(arr[mid + 1], x)) {
                     return mid;
                 }
@@ -308,60 +303,29 @@ public class Node {
         return -1;
     }
 
-    /*
-    if looking node exists in the network then it will be returned.
-    if looking node does not exist then its predecessor will be returned
-     */
-
-//    public Node lookUp(String id){
-//
-//        if(nodes.containsKey(id)){
-//            return nodes.get(id);
-//        }
-//
-//        if(isBigger(id, this.id)){
-//            if(isOtherBigger(id)){
-//                return this;
-//            }
-//            return getNode(id, isMax);
-//
-//        }else {
-//            if(isOtherBigger(id)){
-//                return nodes.get(nodes.lastKey()).lookUp(id);
-//            }
-//            return getNode(id, isMin);
-//        }
-//}
-//
-//    private Node getNode(String id, boolean isEdge) {
-//        if(isOtherSmaller(id)){
-//            if(isEdge){
-//                return this;
-//            }
-//            return nodes.get(nodes.lastKey()).lookUp(id);
-//        }
-//
-//        if(isBigger(nodes.firstKey(), id)){
-//            return this;
-//        }else {
-//            return nodes.get(findLastMin(id)).lookUp(id);
-//        }
-//    }
-
 
     public synchronized Node lookUp(String id) {
         //System.out.println("Node " + this.id + " is looking for node " + id);
         try {
+//            System.out.println(this.id + " START LOOKUP id " + id);
             if (isBigger(id, this.getId()) && (isBigger(getSuccessor().id, id)) || this.id.equals(id)) {
 //            System.out.println("node " + this.id + "returns its successor" + getSuccessor().getId());
                 return getSuccessor();
             } else {
                 final Node highestPredecessor = findHighestPredecessor(id);
+//                System.out.println("Highest predecessor is node " + highestPredecessor.getId());
 //            System.out.println("highest successor is " + highestPredecessor.getId());
-                //if highestPredecessor is the MAX node then return its successor (min node) as successor of ID
+                //if highestPredecessor is the MAX node
                 if (highestPredecessor.equals(this)) {
 //                System.out.println("node " + this.id + " is a MAX node, returning its successor - min node " + highestPredecessor.getSuccessor().getId());
-                    return highestPredecessor.getSuccessor();
+                    //if ID is either new MIN or MAX node then return current MIN node as ID's successor
+                    if (isBigger(id, this.id) || isBigger(getSuccessor().getId(), id)) {
+                        return highestPredecessor.getSuccessor();
+                    }
+                    /* if we are here, then current node is a MAX node which has only one connection in its finger table(successor only),
+                     and ID is a NORMAL node; then we go to current node's successor;
+                     */
+                    return highestPredecessor.getSuccessor().lookUp(id);
                 }
                 //if highest predecessor is the normal node then continues look up.
 //            System.out.println("node " + this.getId() + "sending lookup of node " + id + " to highest predecessor " + highestPredecessor.getId());
@@ -369,6 +333,8 @@ public class Node {
             }
         } catch (Exception e) {
             System.err.println("Lookup not found");
+            System.err.println(e.getLocalizedMessage());
+            System.err.println(e.toString());
             return null;
         }
 
@@ -379,6 +345,5 @@ public class Node {
         Node n = (Node) obj;
         return n.getId().compareTo(this.getId()) == 0;
     }
-
 
 }

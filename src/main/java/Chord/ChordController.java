@@ -13,7 +13,6 @@ public class ChordController {
 
         if (lastNode != null) {
             final String nodeId = node.getId();
-            final String lastNodeId = lastNode.getId();
 
             if (lastNode.hasNeighbours()) {
                 Node successorNode = lastNode.lookUp(nodeId);
@@ -22,14 +21,7 @@ public class ChordController {
             } else {
                 node.join(lastNode);
                 server.setLastNode(node);
-//                System.out.println(nodeId.compareTo(lastNodeId));
-//                if (Node.isBigger(node, lastNode)) {
-//                    node.setMax(true);
-//                    lastNode.setMin(true);
-//                }else {
-//                    node.setMin(true);
-//                    lastNode.setMax(true);
-//                }
+
                 return true;
             }
 
@@ -42,7 +34,4 @@ public class ChordController {
         return false;
     }
 
-//    public Node lookUp(Node node , String id){
-//
-//    }
 }
