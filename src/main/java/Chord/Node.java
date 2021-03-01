@@ -16,12 +16,12 @@ import java.util.*;
 public class Node {
     private int keySize;
     private String id;
-    private SortedMap<String, Node> nodes;
+    private final SortedMap<String, Node> nodes;
     private String ip;
     private String publicIp;
     private Node predecessor;
     private Node successor;
-    private Thread updateThread;
+    private final Thread updateThread;
 
     public Node() {
 
@@ -136,13 +136,10 @@ public class Node {
     public boolean stabilize() {
         System.out.println("Node " + id + " started stabilization");
         if (hasNeighbours()) {
-            final String firstKey = nodes.firstKey();
             final Node x = successor.getPredecessor();
             if (x == null) {
-                if (isBigger(successor, this)) {
-                    successor.joinNotify(this);
-                    return false;
-                }
+
+                successor.joinNotify(this);
                 return false;
             }
 
