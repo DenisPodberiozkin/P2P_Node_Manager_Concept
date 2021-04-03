@@ -17,9 +17,6 @@ public class Updater implements Runnable {
                 Thread.sleep(1000);
                 System.out.println("Runner run!");
                 node.checkConnections();
-//                if (!node.stabilize()) {
-//                    node.stabilize();
-//                }
                 boolean status;
                 do {
                     status = node.stabilize();

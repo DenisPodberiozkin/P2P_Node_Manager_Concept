@@ -1,37 +1,34 @@
 package Chord;
 
 public class ChordController {
-    private Server server;
+	private final Server server;
 
-    public ChordController(Server server) {
-        this.server = server;
-    }
+	public ChordController(Server server) {
+		this.server = server;
+	}
 
-    public boolean join(Node node) {
-        final Node lastNode = server.getLastNode();
+	public void join(Node node) {
+		final Node lastNode = server.getLastNode();
 
 
-        if (lastNode != null) {
-            final String nodeId = node.getId();
+		if (lastNode != null) {
+			final String nodeId = node.getId();
 
-            if (lastNode.hasNeighbours()) {
-                Node successorNode = lastNode.lookUp(nodeId);
-                node.join(successorNode);
-                server.setLastNode(node);
-            } else {
-                node.join(lastNode);
-                server.setLastNode(node);
+			if (lastNode.hasNeighbours()) {
+				Node successorNode = lastNode.lookUp(nodeId);
+				node.join(successorNode);
+				server.setLastNode(node);
+			} else {
+				node.join(lastNode);
+				server.setLastNode(node);
 
-                return true;
-            }
+			}
 
-        } else {
+		} else {
             node.join();
             server.setLastNode(node);
-            return true;
         }
 
-        return false;
     }
 
 }

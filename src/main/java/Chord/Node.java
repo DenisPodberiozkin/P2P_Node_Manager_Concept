@@ -61,22 +61,10 @@ public class Node {
         return predecessor;
     }
 
-    public void setPredecessor(Node predecessor) {
-        this.predecessor = predecessor;
-    }
-
     public Node getSuccessor() {
         return successor;
     }
 
-    public String getPublicIp() {
-        return publicIp;
-    }
-
-
-    public String getIp() {
-        return ip;
-    }
 
     public String getId() {
         return id;
@@ -85,10 +73,6 @@ public class Node {
     public void addNode(Node node) {
         System.out.println("Node " + node.getId() + "was added to node " + id);
         nodes.put(node.getId(), node);
-    }
-
-    public Node getNode(String id) {
-        return nodes.get(id);
     }
 
     public boolean hasNeighbours() {
@@ -172,7 +156,7 @@ public class Node {
     }
 
     public void joinNotify(Node candidateNode) {
-        System.out.println("Node " + id + "recieved joinNotify from " + candidateNode.getId());
+        System.out.println("Node " + id + "received joinNotify from " + candidateNode.getId());
 
         if (predecessor == null ||
                 (isBigger(candidateNode, predecessor)) && isBigger(this, candidateNode) ||
@@ -222,20 +206,12 @@ public class Node {
 
     }
 
-    public void ckeckPredecessor() {
-        //TODO
-    }
-
 
     private Node findHighestPredecessor(String id) {
         final int size = nodes.keySet().size();
         final String[] arr = new String[size];
         nodes.keySet().toArray(arr);
         int resId = binarySearch(arr, 0, size - 1, id);
-//        System.out.println("Highest is " + resId + " was choosen from");
-//        for(String s: arr){
-//            System.out.println(s);
-//        }
         if (resId < 0) { // < 0 if ID either bigger or smaller than every node in the finger table
             /*
             If successor of current node is bigger then we go to the maximum node in the finger table
@@ -265,8 +241,7 @@ public class Node {
         try {
             in = new BufferedReader(new InputStreamReader(
                     whatIsMyIp.openStream()));
-            String ip = in.readLine();
-            return ip;
+            return in.readLine();
         } finally {
             if (in != null) {
                 try {
@@ -279,7 +254,7 @@ public class Node {
     }
 
     private int binarySearch(String[] arr, int l, int r, String x) {
-//        System.out.println("Highest was choosen from");
+//        System.out.println("Highest was chosen from");
 
         if (r >= l) {
             int mid = l + (r - l) / 2;

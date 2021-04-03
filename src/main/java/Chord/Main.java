@@ -1,6 +1,5 @@
 package Chord;
 
-import java.util.LinkedList;
 import java.util.Scanner;
 
 public class Main {
@@ -8,7 +7,6 @@ public class Main {
 
     public static void main(String[] args) {
         final int numNodes = 100;
-        LinkedList<Node> nodes = new LinkedList<>();
         ChordController controller = new ChordController(new Server());
 
         for (int i = 0; i < numNodes; i++) {
